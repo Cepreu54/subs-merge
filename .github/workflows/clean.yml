@@ -1,0 +1,32 @@
+name: Clean VLess Servers
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download and filter servers (only countries with good ping from St. Petersburg)
+        run: |
+          curl -s "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt" | \
+          grep -v '%F0%9F%87%B7%F0%9F%87%BA' | \
+          grep -E '%F0%9F%87%AB%F0%9F%87%AE|%F0%9F%87%B1%F0%9F%87%BB|%F0%9F%87%B1%F0%9F%87%B9|%F0%9F%87%B5%F0%9F%87%B1|%F0%9F%87%A9%F0%9F%87%AA|%F0%9F%87%B8%F0%9F%87%AA|%F0%9F%87%B3%F0%9F%87%B1|%F0%9F%87%A6%F0%9F%87%B9' > clean.txt
+
+      - name: Count servers
+        run: |
+          count=$(wc -l < clean.txt)
+          echo "✅ Оставлено серверов из ближней Европы: $count"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add clean.txt
+          git diff --staged --quiet || git commit -m "Auto-update clean servers $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
